@@ -1,0 +1,9 @@
+Package: com.hackingdartmouth.passcodeactivator
+Name: PasscodeActivator
+Depends: mobilesubstrate, libactivator (>= 1.9)
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: Adds an Activator event that detects if a certain passcode is entered
+Maintainer: Alex Beals <Alex.Beals.18@dartmouth.edu>
+Author: Alex Beals <Alex.Beals.18@dartmouth.edu>
+Section: Tweaks

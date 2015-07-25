@@ -1,0 +1,6 @@
+{
+	title = "Passcode Entered";
+	group = "Passcode";
+	description = "Set passcode was entered";
+	"compatible-modes" = ("lockscreen");
+}
