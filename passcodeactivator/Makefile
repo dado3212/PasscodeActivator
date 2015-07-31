@@ -1,3 +1,5 @@
+ARCHS = armv7 arm64
+
 include theos/makefiles/common.mk
 
 BUNDLE_NAME = PasscodeActivator
@@ -5,6 +7,7 @@ PasscodeActivator_FILES = PasscodeActivator.mm
 PasscodeActivator_INSTALL_PATH = /Library/PreferenceBundles
 PasscodeActivator_FRAMEWORKS = UIKit
 PasscodeActivator_PRIVATE_FRAMEWORKS = Preferences
+PasscodeActivator_LIBRARIES = activator
 
 include $(THEOS_MAKE_PATH)/bundle.mk
 
