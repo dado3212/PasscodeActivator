@@ -12,9 +12,11 @@ PSSpecifier *lastEdited = nil;
  
 extern NSString* PSDeletionActionKey;
 
-// -------------------
-//|	  Custom Methods  |
-// -------------------
+/* ================================================================
+		CUSTOM METHODS
+   ================================================================ */
+
+// writes all PSSpecifier in _specifiers to file (all saved passcodes)
 - (void) saveActivators {
 	NSMutableArray *specs = [[NSMutableArray alloc] init];
 	for (int i = 0; i < _specifiers.count; i++) {
@@ -29,6 +31,7 @@ extern NSString* PSDeletionActionKey;
 	[specs writeToFile:prefPath atomically:YES];
 }
 
+// takes in the name and value of a PSSpecifier and returns a created one
 - (PSSpecifier *)createSpecNamed:(NSString *)name value:(NSString *)value {
 	PSSpecifier *tempSpec = [PSSpecifier preferenceSpecifierNamed:name
 		target:self
@@ -47,6 +50,7 @@ extern NSString* PSDeletionActionKey;
     return [spec propertyForKey:@"value"];
 }
 
+// the code that is called when you click 'Add'
 - (void)addCode {
 	UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Create Passcode"
 		message:@""
@@ -58,6 +62,7 @@ extern NSString* PSDeletionActionKey;
 	[alertView show];
 }
 
+// the code that is called when you click 'Edit'
 - (void)editCode: (PSSpecifier *) spec {
 	lastEdited = spec;
 	UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Edit Passcode"
@@ -71,6 +76,7 @@ extern NSString* PSDeletionActionKey;
 	[alertView show];
 }
 
+// the code that is called when you delete a passcode
 - (void) deletedCode:(PSSpecifier*)specifier {
 	NSMutableArray *itemsCopy = [_specifiers mutableCopy];
 	[itemsCopy removeObject:specifier];
@@ -91,6 +97,7 @@ extern NSString* PSDeletionActionKey;
 	[self reloadSpecifiers];
 }
 
+// this handles what happens when you click done on an AlertView: either adds or modifies the passcodes
 - (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
 	NSString *pass = [[alertView textFieldAtIndex:0] text];
 	NSDictionary *specData;
@@ -101,7 +108,7 @@ extern NSString* PSDeletionActionKey;
 		PSSpecifier* tempSpec = [self createSpecNamed:[NSString stringWithFormat:@"Passcode %d", (int)[specs count]] value:pass];
 		[specs addObject:tempSpec];
 		_specifiers = [[NSArray arrayWithArray:specs] retain];
-		specData = @{@"new": pass}; //[NSDictionary dictionaryWithObject:pass forKey:@"new"];
+		specData = @{@"new": pass}; 
 
 	} else { // save modified passcode
 		specData = @{@"new": pass, @"old": [lastEdited propertyForKey:@"value"]};
@@ -119,10 +126,11 @@ extern NSString* PSDeletionActionKey;
 	[self reloadSpecifiers];
 }
 
-// -------------------
-//|	 Override Methods |
-// -------------------
+/* ================================================================
+		OVERRIDE METHODS
+   ================================================================ */
 
+// overrides specifiers to display the current passcodes
 - (id)specifiers {
 	if (_specifiers == nil) {
 		NSMutableArray *specs = [NSMutableArray array];
@@ -147,24 +155,43 @@ extern NSString* PSDeletionActionKey;
 	return _specifiers;
 }
 
-- (void)_updateNavigationBar {
-	[super _updateNavigationBar];
+// when the preferences pane is opened, place the 'Add' button in the header
+- (void)viewWillAppear:(BOOL)arg1 {
+	[super viewWillAppear:arg1];
+
+	// add to header
 	UINavigationItem *nav = self.navigationItem;
 	NSMutableArray *barItems = [(NSArray *)nav.rightBarButtonItems mutableCopy];
 
-	if (barItems.count >= 1) {
-		UIBarButtonItem *currButton = [barItems objectAtIndex:0];
-		if ([currButton.title isEqualToString:@"Edit"] && barItems.count == 1) { // edit page: add
-			UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithTitle:@"Add" 
-					style:UIBarButtonItemStylePlain 
-					target:self
-					action:@selector(addCode)];
-			addButton.tag = 1;
+	UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithTitle:@"Add" 
+			style:UIBarButtonItemStylePlain 
+			target:self
+			action:@selector(addCode)];
+	addButton.tag = 1;
 
-			[barItems addObject:addButton];
-		} else if ([currButton.title isEqualToString:@"Done"]) { // done page: remove
-			barItems = [NSMutableArray arrayWithObjects:currButton, nil];
-		}		
+	[barItems addObject:addButton];
+
+	[nav setRightBarButtonItems:[[NSArray arrayWithArray:barItems] retain]];
+}
+
+// when entering editing mode, remove 'Add', when closing editing mode, add 'Add'
+-(void)editDoneTapped {
+	[super editDoneTapped];
+
+	UINavigationItem *nav = self.navigationItem;
+	NSMutableArray *barItems = [(NSArray *)nav.rightBarButtonItems mutableCopy];
+
+	if ([self editable]) {
+		UIBarButtonItem *currButton = [barItems objectAtIndex:0];
+		barItems = [NSMutableArray arrayWithObjects:currButton, nil];
+	} else {
+		UIBarButtonItem *addButton = [[UIBarButtonItem alloc] initWithTitle:@"Add" 
+			style:UIBarButtonItemStylePlain 
+			target:self
+			action:@selector(addCode)];
+		addButton.tag = 1;
+
+		[barItems addObject:addButton];
 	}
 
 	[nav setRightBarButtonItems:[[NSArray arrayWithArray:barItems] retain]];

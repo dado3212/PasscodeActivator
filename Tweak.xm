@@ -61,6 +61,7 @@ PasscodeEvent *_passcodeEvent;
 
 %hook SBDeviceLockController
 
+// When you try to unlock the device, it sends a notification to SpringBoard telling it to run the Activator actions
 - (BOOL)attemptDeviceUnlockWithPassword:(NSString *)passcode appRequested:(BOOL)requested {
 	BOOL response = %orig;
 	if (![passcode isKindOfClass:[NSString class]]) {
@@ -80,9 +81,9 @@ PasscodeEvent *_passcodeEvent;
 
 %hook SBUIPasscodeEntryField
 
+// Removes vibration for wrong passcode if it has a linked action
 -(void)_resetForFailedPasscode:(BOOL)arg1 playUnlockFailedSound:(BOOL)arg2 {
 	if ([LASharedActivator hasEventWithName:[NSString stringWithFormat:@"%@-%@", eventFormat, [self stringValue]]]) {
-		// makes it so it doesn't vibrate if it does something
 		%orig(arg1, false);
 	} else {
 		%orig;
@@ -91,6 +92,7 @@ PasscodeEvent *_passcodeEvent;
 
 %end
 
+// The function that modifies the Activator Events (called through CFNoticiationCenter from Preferences pane)
 void updateEvents(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 	NSDictionary *update = (__bridge NSDictionary*)userInfo;
 	if ([update objectForKey:@"remove"]) { // unassign the event, and unregister the source
@@ -110,6 +112,7 @@ void updateEvents(CFNotificationCenterRef center, void *observer, CFStringRef na
 	}
 }
 
+// Triggers all linked activator events (gets around ByPass errors)
 void activateEvent(CFNotificationCenterRef center, void *observer, CFStringRef name, const void *object, CFDictionaryRef userInfo) {
 	NSDictionary *eventData = (__bridge NSDictionary*)userInfo;
 
@@ -118,7 +121,7 @@ void activateEvent(CFNotificationCenterRef center, void *observer, CFStringRef n
 }
 
 %ctor {
-	// Construct notification listener
+	// Construct notification listeners
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDistributedCenter(),
 								NULL,
 								&updateEvents,
