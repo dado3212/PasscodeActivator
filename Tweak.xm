@@ -84,7 +84,6 @@ PasscodeEvent *_passcodeEvent;
 %end
 %hook SBUIPasscodeLockViewBase
 -(void)resetForFailedPasscode {
-	NSLog(@"resetForFailedPasscode: %@", [[self _entryField] stringValue]);
 	if ([LASharedActivator hasEventWithName:[NSString stringWithFormat:@"%@-%@", eventFormat, [[self _entryField] stringValue]]]) {
 		[[self _entryField] reset];
 		return;
