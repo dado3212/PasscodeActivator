@@ -2,6 +2,8 @@
 #import <libactivator/libactivator.h>
 #import <CoreFoundation/CFNotificationCenter.h>
 
+extern "C" CFNotificationCenterRef CFNotificationCenterGetDistributedCenter();
+
 @interface PasscodeActivatorEditableListController: PSEditableListController
 @end
 

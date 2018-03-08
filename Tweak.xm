@@ -4,11 +4,23 @@
 #import <CoreFoundation/CFNotificationCenter.h>
 #include <libactivator/libactivator.h>
 
+extern "C" CFNotificationCenterRef CFNotificationCenterGetDistributedCenter();
+
 static NSString *eventFormat = @"com.hackingdartmouth.passcodeactivator.passcode"; 
 static NSString *prefPath = @"/var/mobile/Library/Preferences/com.hackingdartmouth.passcodeactivator.plist";
 
+@interface SBUIPasscodeEntryField: UIView
+-(void)reset;
+@property (nonatomic, copy) NSString *stringValue;
+@end
+
+@interface SBUIPasscodeLockViewBase
+-(SBUIPasscodeEntryField *)_entryField;
+-(id)passcode;
+@end
+
 @interface PasscodeEvent: NSObject <LAEventDataSource> {
-NSString *passcode;
+	NSString *passcode;
 }
 + (void)load:(NSString *)code;
 @end
@@ -58,9 +70,33 @@ PasscodeEvent *_passcodeEvent;
  
 @end
 
+%group post10
+%hook SBDashBoardPasscodeViewController
+-(void)_passcodeLockViewPasscodeEntered:(SBUIPasscodeLockViewBase *)lockView viaMesa:(BOOL)arg2 {
+	CFNotificationCenterPostNotification(CFNotificationCenterGetDistributedCenter(),
+										 CFSTR("com.hackingdartmouth.passcodeactivator.activateEvent"), 
+										 NULL, 
+										 (__bridge CFDictionaryRef)@{@"passcode": [lockView passcode]}, 
+										 kCFNotificationDeliverImmediately);
 
+	return %orig;
+}
+%end
+%hook SBUIPasscodeLockViewBase
+-(void)resetForFailedPasscode {
+	NSLog(@"resetForFailedPasscode: %@", [[self _entryField] stringValue]);
+	if ([LASharedActivator hasEventWithName:[NSString stringWithFormat:@"%@-%@", eventFormat, [[self _entryField] stringValue]]]) {
+		[[self _entryField] reset];
+		return;
+	} else {
+		return %orig;
+	}
+}
+%end
+%end
+
+%group pre10
 %hook SBDeviceLockController
-
 // When you try to unlock the device, it sends a notification to SpringBoard telling it to run the Activator actions
 - (BOOL)attemptDeviceUnlockWithPassword:(NSString *)passcode appRequested:(BOOL)requested {
 	BOOL response = %orig;
@@ -76,11 +112,9 @@ PasscodeEvent *_passcodeEvent;
 
 	return response;
 }
-
 %end
 
 %hook SBUIPasscodeEntryField
-
 // Removes vibration for wrong passcode if it has a linked action
 -(void)_resetForFailedPasscode:(BOOL)arg1 playUnlockFailedSound:(BOOL)arg2 {
 	if ([LASharedActivator hasEventWithName:[NSString stringWithFormat:@"%@-%@", eventFormat, [self stringValue]]]) {
@@ -89,7 +123,7 @@ PasscodeEvent *_passcodeEvent;
 		%orig;
 	}
 }
-
+%end
 %end
 
 // The function that modifies the Activator Events (called through CFNoticiationCenter from Preferences pane)
@@ -121,6 +155,13 @@ void activateEvent(CFNotificationCenterRef center, void *observer, CFStringRef n
 }
 
 %ctor {
+	// Instantiate depending on iOS version
+	if (kCFCoreFoundationVersionNumber < 1300) {
+		%init(pre10);
+	} else {
+		%init(post10);
+	}
+
 	// Construct notification listeners
 	CFNotificationCenterAddObserver(CFNotificationCenterGetDistributedCenter(),
 								NULL,
